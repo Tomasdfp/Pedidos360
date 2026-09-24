@@ -1,0 +1,77 @@
+/* src/app/app.scss */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .auth-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .user-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .btn {
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .btn-login {
+    background: white;
+    color: #0078d4;
+
+    &:hover {
+      background: #f3f3f3;
+    }
+  }
+
+  .btn-logout {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
+
+.app-content {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}

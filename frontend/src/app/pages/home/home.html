@@ -1,0 +1,80 @@
+<!-- src/app/pages/home/home.html -->
+<div class="home-container">
+  <div class="success-banner">
+    <div class="success-icon">✓</div>
+    <div class="success-content">
+      <h2>¡Inicio de sesión exitoso!</h2>
+      <p>Has accedido correctamente a <strong>Pedidos360</strong> con Microsoft Entra External ID.</p>
+    </div>
+  </div>
+
+  <div class="user-card" *ngIf="user">
+    <h3>👤 Datos del usuario autenticado</h3>
+
+    <div class="user-details">
+      <div class="detail-row">
+        <span class="label">Nombre:</span>
+        <span class="value">{{ user.name || 'No disponible' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Email:</span>
+        <span class="value">{{ user.username || 'No disponible' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Tenant ID:</span>
+        <span class="value mono">{{ user.tenantId || 'No disponible' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Object ID:</span>
+        <span class="value mono">{{ user.localAccountId || 'No disponible' }}</span>
+      </div>
+    </div>
+
+    <div class="auth-status">
+      <div class="status-item">
+        <span class="status-badge ok">✅ Sesión activa</span>
+      </div>
+      <div class="status-item">
+        <span class="status-badge ok">🎫 Token JWT almacenado</span>
+      </div>
+      <div class="status-item">
+        <span class="status-badge ok">🔒 Ruta protegida por MsalGuard</span>
+      </div>
+    </div>
+
+    <!-- NUEVA SECCIÓN: Probar llamada al API -->
+    <div class="api-test-section">
+      <h4>🔌 Probar consumo del API protegido</h4>
+      <p>Este botón hace una llamada HTTP al backend. El MsalInterceptor adjunta el Access Token automáticamente.</p>
+
+      <button class="btn btn-test-api" (click)="probarLlamadaApi()" [disabled]="cargando">
+        <span *ngIf="!cargando">📡 Probar llamada al API</span>
+        <span *ngIf="cargando">⏳ Llamando...</span>
+      </button>
+
+      <div class="api-result" *ngIf="errorMensaje">
+        <p class="error">❌ {{ errorMensaje }}</p>
+        <p class="info">
+          ℹ️ Este error es esperado porque el backend aún no está desplegado.
+          Lo importante es verificar en DevTools (F12 → Network) que la petición
+          incluye el header <code>Authorization: Bearer &lt;token&gt;</code>.
+        </p>
+      </div>
+
+      <div class="api-result success" *ngIf="pedidos.length > 0">
+        <p class="ok">✅ Se recibieron {{ pedidos.length }} pedidos del backend</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-logout-home" (click)="logout()">
+        🚪 Cerrar sesión
+      </button>
+    </div>
+  </div>
+
+  <div class="info-section">
+    <h3>ℹ️ ¿Qué sigue?</h3>
+    <p>Esta es la página principal protegida. Próximamente aquí se mostrará la lista de pedidos del usuario.</p>
+  </div>
+</div>

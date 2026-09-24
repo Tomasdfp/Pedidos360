@@ -1,0 +1,31 @@
+{
+  "pedidos": [
+    {
+      "id": 1,
+      "numeroOrden": "ORD-001",
+      "cliente": "Tomas Del Fierro",
+      "descripcion": "Notebook Lenovo ThinkPad",
+      "monto": 850000,
+      "estado": "PENDIENTE",
+      "fechaCreacion": "2026-09-20T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "numeroOrden": "ORD-002",
+      "cliente": "Maria Gonzalez",
+      "descripcion": "Monitor Samsung 27 pulgadas",
+      "monto": 220000,
+      "estado": "COMPLETADO",
+      "fechaCreacion": "2026-09-18T14:15:00Z"
+    },
+    {
+      "id": 3,
+      "numeroOrden": "ORD-003",
+      "cliente": "Pedro Soto",
+      "descripcion": "Teclado mecánico Logitech",
+      "monto": 75000,
+      "estado": "EN_PROCESO",
+      "fechaCreacion": "2026-09-22T09:00:00Z"
+    }
+  ]
+}

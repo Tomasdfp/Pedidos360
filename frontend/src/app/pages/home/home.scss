@@ -1,0 +1,80 @@
+/* Agregar al final del archivo home.scss */
+
+.api-test-section {
+  background: #fff8e1;
+  border-left: 4px solid #ffc107;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+
+  h4 {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: #856404;
+    font-size: 0.9rem;
+  }
+
+  .btn-test-api {
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #212529;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 193, 7, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .api-result {
+    margin-top: 1rem;
+
+    .error {
+      color: #721c24;
+      background: #f8d7da;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .info {
+      color: #004085;
+      background: #d1ecf1;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+
+      code {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 0.15rem 0.4rem;
+        border-radius: 3px;
+        font-family: 'Consolas', monospace;
+      }
+    }
+
+    &.success .ok {
+      color: #155724;
+      background: #d4edda;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+  }
+}
