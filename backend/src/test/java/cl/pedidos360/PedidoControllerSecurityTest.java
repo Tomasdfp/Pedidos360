@@ -24,6 +24,12 @@ public class PedidoControllerSecurityTest {
     @MockBean
     private JwtDecoder jwtDecoder;
 
+    @MockBean
+    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+
+    @MockBean
+    private org.springframework.amqp.rabbit.connection.ConnectionFactory connectionFactory;
+
     @Test
     @DisplayName("1. Petición sin token debe retornar 401 Unauthorized")
     public void whenNoToken_thenUnauthorized() throws Exception {

@@ -1,5 +1,6 @@
 package cl.pedidos360.service;
 
+import cl.pedidos360.messaging.producer.PedidoEventProducer;
 import cl.pedidos360.model.Pedido;
 import cl.pedidos360.repository.PedidoRepository;
 import org.springframework.stereotype.Service;
@@ -12,9 +13,11 @@ import java.util.Optional;
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
+    private final PedidoEventProducer pedidoEventProducer;
 
-    public PedidoService(PedidoRepository pedidoRepository) {
+    public PedidoService(PedidoRepository pedidoRepository, PedidoEventProducer pedidoEventProducer) {
         this.pedidoRepository = pedidoRepository;
+        this.pedidoEventProducer = pedidoEventProducer;
     }
 
     public List<Pedido> findAll() {
@@ -29,7 +32,12 @@ public class PedidoService {
         if (pedido.getFechaCreacion() == null) {
             pedido.setFechaCreacion(LocalDateTime.now());
         }
-        return pedidoRepository.save(pedido);
+        Pedido pedidoGuardado = pedidoRepository.save(pedido);
+
+        // Publicación del evento asíncrono sin acoplar detalles de RabbitMQ
+        pedidoEventProducer.publicarPedidoCreado(pedidoGuardado);
+
+        return pedidoGuardado;
     }
 
     public Optional<Pedido> update(Long id, Pedido pedidoDetails) {
