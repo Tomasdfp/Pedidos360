@@ -9,6 +9,11 @@ export const routes: Routes = [
     canActivate: [MsalGuard]
   },
   {
+    path: 'admin-rabbit',
+    loadComponent: () => import('./pages/rabbit-admin/rabbit-admin').then(m => m.RabbitAdminComponent),
+    canActivate: [MsalGuard]
+  },
+  {
     path: '**',
     redirectTo: ''
   }

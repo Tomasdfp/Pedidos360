@@ -1,0 +1,182 @@
+<div class="rabbit-admin-container">
+  <div class="header-card">
+    <div class="title-group">
+      <h2>🐰 Administración de Infraestructura RabbitMQ</h2>
+      <p class="subtitle">Microservicio Administrador: Gestión dinámica de Colas, Métricas y Pruebas de Tickets (ACK / DLQ)</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="cargarEstadosColas()" [disabled]="cargandoEstados">
+        🔄 Refrescar Métricas
+      </button>
+    </div>
+  </div>
+
+  <!-- Alertas de Notificación -->
+  <div *ngIf="mensajeExito" class="alert alert-success">
+    ✅ {{ mensajeExito }}
+  </div>
+  <div *ngIf="mensajeError" class="alert alert-danger">
+    ❌ {{ mensajeError }}
+  </div>
+
+  <!-- Grid de Métricas de Colas del Sistema -->
+  <section class="section-card">
+    <h3>📊 Estado de Colas del Sistema</h3>
+    <div class="queues-grid">
+      <div *ngFor="let q of queueStates" class="queue-card" [class.is-dlq]="q.name.includes('.dlq')">
+        <div class="queue-header">
+          <span class="queue-badge" [class.badge-dlq]="q.name.includes('.dlq')">
+            {{ q.name.includes('.dlq') ? 'DLQ (Fallos)' : 'Principal' }}
+          </span>
+          <button class="btn-icon-delete" title="Eliminar cola" (click)="eliminarCola(q.name)">🗑️</button>
+        </div>
+        <h4 class="queue-name">{{ q.name }}</h4>
+        <div class="queue-stats">
+          <div class="stat-box">
+            <span class="stat-number">{{ q.messageCount }}</span>
+            <span class="stat-label">Mensajes Pendientes</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number">{{ q.consumerCount }}</span>
+            <span class="stat-label">Consumidores</span>
+          </div>
+        </div>
+        <div class="queue-status">
+          <span class="dot" [class.dot-active]="q.exists"></span>
+          <span>{{ q.status }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Paneles de Acción: Crear Cola y Pruebas de Tickets -->
+  <div class="actions-grid">
+    <!-- Panel 1: Crear Nueva Cola -->
+    <section class="section-card">
+      <h3>➕ Crear Nueva Cola</h3>
+      <form (ngSubmit)="crearCola()" class="form-vertical">
+        <div class="form-group">
+          <label for="queueName">Nombre de la Cola *</label>
+          <input
+            id="queueName"
+            type="text"
+            [(ngModel)]="nuevaCola.name"
+            name="queueName"
+            placeholder="ej: reportes.queue"
+            required
+            class="form-control"
+          />
+          <small class="form-text">Solo letras, números, puntos, guiones y guiones bajos.</small>
+        </div>
+
+        <div class="form-row checkboxes">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="nuevaCola.durable" name="durable" />
+            Durable (Sobrevive reinicios)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="nuevaCola.autoDelete" name="autoDelete" />
+            Auto-Delete
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="dlx">Dead Letter Exchange (Opcional)</label>
+          <input
+            id="dlx"
+            type="text"
+            [(ngModel)]="nuevaCola.deadLetterExchange"
+            name="dlx"
+            placeholder="ej: pedidos.dlx"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="dlk">Dead Letter Routing Key (Opcional)</label>
+          <input
+            id="dlk"
+            type="text"
+            [(ngModel)]="nuevaCola.deadLetterRoutingKey"
+            name="dlk"
+            placeholder="ej: reportes.dead-letter"
+            class="form-control"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          💾 Crear Cola en RabbitMQ
+        </button>
+      </form>
+    </section>
+
+    <!-- Panel 2: Prueba del Consumidor de Tickets (ACK y DLQ) -->
+    <section class="section-card">
+      <h3>🎫 Emitir Ticket de Prueba (Flujo Asíncrono)</h3>
+      <p class="section-subtitle">
+        Envía un ticket a <code>ticket.queue</code> para validar en tiempo real el <strong>ACK manual</strong> del consumidor, o activa la simulación de error para forzar el desvío a <strong><code>ticket.dlq</code></strong>.
+      </p>
+
+      <form (ngSubmit)="enviarTicket()" class="form-vertical">
+        <div class="form-group">
+          <label for="ticketTitulo">Título del Ticket *</label>
+          <input
+            id="ticketTitulo"
+            type="text"
+            [(ngModel)]="nuevoTicket.titulo"
+            name="ticketTitulo"
+            placeholder="ej: Generar factura PDF #1024"
+            required
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="ticketDesc">Descripción *</label>
+          <textarea
+            id="ticketDesc"
+            [(ngModel)]="nuevoTicket.descripcion"
+            name="ticketDesc"
+            rows="2"
+            placeholder="Detalles del requerimiento asíncrono"
+            required
+            class="form-control"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label for="ticketPrioridad">Prioridad</label>
+            <select id="ticketPrioridad" [(ngModel)]="nuevoTicket.prioridad" name="ticketPrioridad" class="form-control">
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
+            </select>
+          </div>
+          <div class="form-group col-half">
+            <label for="ticketSolicitante">Solicitante</label>
+            <input
+              id="ticketSolicitante"
+              type="text"
+              [(ngModel)]="nuevoTicket.solicitante"
+              name="ticketSolicitante"
+              placeholder="ej: Operador 1"
+              class="form-control"
+            />
+          </div>
+        </div>
+
+        <div class="error-simulation-box">
+          <label class="checkbox-label text-danger">
+            <input type="checkbox" [(ngModel)]="nuevoTicket.debeFallar" name="debeFallar" />
+            ⚠️ <strong>Simular fallo de procesamiento</strong> (Fuerza NACK sin requeue hacia <code>ticket.dlq</code>)
+          </label>
+        </div>
+
+        <button type="submit" class="btn" [ngClass]="nuevoTicket.debeFallar ? 'btn-danger' : 'btn-success'">
+          🚀 {{ nuevoTicket.debeFallar ? 'Enviar Ticket Fallido a DLQ' : 'Enviar Ticket a Cola Normal' }}
+        </button>
+      </form>
+    </section>
+  </div>
+</div>

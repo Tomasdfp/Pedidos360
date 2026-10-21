@@ -1,6 +1,11 @@
-<!-- src/app/app.html -->
 <header class="app-header">
-  <h1>🛒 {{ title }}</h1>
+  <div class="header-left">
+    <h1>🛒 {{ title }}</h1>
+    <nav *ngIf="isAuthenticated" class="nav-menu">
+      <a routerLink="/" class="nav-item">📦 Pedidos</a>
+      <a routerLink="/admin-rabbit" class="nav-item">🐰 Admin RabbitMQ</a>
+    </nav>
+  </div>
 
   <div class="auth-section">
     <!-- Mostrar cuando NO está autenticado -->

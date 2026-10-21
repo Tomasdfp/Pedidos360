@@ -8,20 +8,23 @@ Sistema de gestión de pedidos con arquitectura BFF (Backend-For-Frontend) y men
 
 ```
 Pedidos360/
-├── frontend/             # SPA Angular 18 (MSAL Angular + Entra External ID)
-├── backend/              # Spring Boot 3.3.5 (BFF + Microservicio de Pedidos + Notificaciones)
+├── frontend/                 # SPA Angular 18 (MSAL Angular + Entra External ID)
+│   ├── src/app/pages/home/   # Vista de Pedidos (Persona A)
+│   └── src/app/pages/rabbit-admin/ # Vista de Administración RabbitMQ (Persona B)
+├── backend/                  # Microservicio 1: Pedidos + Notificaciones (Spring Boot 3.3.5 en puerto 8081)
 │   ├── src/main/java/cl/pedidos360/
-│   │   ├── config/       # SecurityConfig, CorsConfig, RabbitMQConfig (Centralizada), DataLoader
-│   │   ├── controller/   # PedidoController (CRUD protegido por scopes)
-│   │   ├── messaging/
-│   │   │   ├── consumer/ # NotificacionConsumer (ACK manual / NACK a DLQ), NotificacionDlqConsumer
-│   │   │   ├── event/    # PedidoCreadoEvent
-│   │   │   └── producer/ # PedidoEventProducer (Aislado de la lógica de negocio)
-│   │   ├── model/        # Pedido (JPA Entity)
-│   │   ├── repository/   # PedidoRepository (JpaRepository)
-│   │   └── service/      # PedidoService (Lógica de negocio desacoplada)
-│   └── src/test/         # 11 pruebas unitarias y de integración (Seguridad, Producer, Consumer, DLQ)
-├── docker-compose.yml    # Infraestructura local de RabbitMQ con Management UI
+│   │   ├── config/           # RabbitMQConfig, SecurityConfig, CorsConfig
+│   │   ├── controller/       # PedidoController
+│   │   ├── messaging/        # PedidoEventProducer, NotificacionConsumer (ACK/DLQ)
+│   │   └── service/          # PedidoService
+├── rabbit-admin-service/     # Microservicio 2: Administrador RabbitMQ (Spring Boot 3.3.5 en puerto 8082)
+│   ├── src/main/java/cl/pedidos360/admin/
+│   │   ├── config/           # RabbitAdminConfig (Beans base RabbitAdmin y Tickets)
+│   │   ├── controller/       # RabbitAdminController (REST POST/DELETE queues, exchanges, bindings)
+│   │   ├── dto/              # QueueRequestDto, ExchangeRequestDto, TicketEvent (Validaciones)
+│   │   ├── consumer/         # TicketConsumer (ACK manual / NACK a ticket.dlq)
+│   │   └── service/          # RabbitAdminService (Lógica de administración encapsulada)
+├── docker-compose.yml        # Infraestructura local de RabbitMQ con Management UI
 └── README.md
 ```
 
@@ -72,7 +75,7 @@ docker compose up -d
 - **AMQP Broker:** `localhost:5672`
 - **Management Console:** `http://localhost:15672` (Usuario: `guest` / Contraseña: `guest`)
 
-### 2. Iniciar Backend (Spring Boot)
+### 2. Iniciar Microservicio de Pedidos (Backend 1)
 ```bash
 cd backend
 ./mvnw spring-boot:run
@@ -81,20 +84,48 @@ cd backend
 - **Consola H2:** `http://localhost:8081/h2-console`
 - **Endpoints REST:** `http://localhost:8081/api/pedidos`
 
-### 3. Iniciar Frontend (Angular)
+### 3. Iniciar Microservicio Administrador de RabbitMQ (Backend 2)
+```bash
+cd rabbit-admin-service
+./mvnw spring-boot:run
+```
+- **Puerto:** `8082`
+- **Endpoints REST:**
+  - `POST /queues`: Crear cola (validado con DTO)
+  - `DELETE /queues/{name}`: Eliminar cola
+  - `GET /queues/{name}`: Consultar estado y conteo de mensajes
+  - `POST /exchanges`: Crear exchange
+  - `DELETE /exchanges/{name}`: Eliminar exchange
+  - `POST /bindings`: Crear binding
+  - `POST /tickets`: Publicar ticket de prueba
+
+### 4. Iniciar Frontend (Angular)
 ```bash
 cd frontend
 npm install
 npm start
 ```
 - **Puerto:** `4200` (`http://localhost:4200`)
+- **Vistas:**
+  - `http://localhost:4200/`: Vista de Pedidos (Persona A)
+  - `http://localhost:4200/admin-rabbit`: Administración RabbitMQ (Persona B)
 
 ---
 
 ## 🧪 Ejecutar Pruebas Automatizadas
+
+### Pruebas Backend Pedidos
 ```bash
 cd backend
 ./mvnw test
 ```
-Resultados: **11/11 pruebas exitosas** (100% de cobertura de seguridad y flujo de mensajería).
+Resultados: **11/11 pruebas exitosas** (Seguridad, Productor, Consumidor ACK y DLQ).
+
+### Pruebas Backend Rabbit Admin
+```bash
+cd rabbit-admin-service
+./mvnw test
+```
+Resultados: **13/13 pruebas exitosas** (RabbitAdminService, Validación de DTOs, Endpoints REST, Consumidor Tickets ACK y DLQ).
+
 
