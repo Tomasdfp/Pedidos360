@@ -5,11 +5,9 @@
 ---
 
 **Asignatura:** DSY1107 Desarrollo Cloud Native I  
-**Evaluación:** Evaluación Parcial N° 3 (Ponderación 12%)  
-**Modalidad:** Parejas (Persona A / Persona B)  
+**Evaluación:** Evaluación Parcial N° 3  
 **Repositorio GitHub:** [https://github.com/Tomasdfp/Pedidos360.git](https://github.com/Tomasdfp/Pedidos360.git)  
 **Rama Principal:** `main`  
-**Último Commit:** `01cea0b` (*feat(rabbit-admin): Microservicio Administrador RabbitMQ (puerto 8082) + modulo Angular /admin-rabbit para Persona B*)
 
 ---
 
@@ -22,8 +20,8 @@ La solución responde a la necesidad de gestionar el ciclo de vida de pedidos co
 ```mermaid
 flowchart TD
     subgraph Client["Frontend Angular 19 (Puerto 4200)"]
-        UI_A["Persona A: Módulo Pedidos (/home) + Login IDaaS"]
-        UI_B["Persona B: Módulo Admin RabbitMQ (/admin-rabbit)"]
+        UI_Pedidos["Módulo Pedidos (/home) + Login IDaaS"]
+        UI_Admin["Módulo Admin RabbitMQ (/admin-rabbit)"]
     end
 
     subgraph IDaaS["IDaaS (Microsoft Entra ID)"]
@@ -57,9 +55,9 @@ flowchart TD
         QueueTicketsDLQ["ticket.dlq"]
     end
 
-    UI_A -->|1. Autenticación OIDC| Auth
-    Auth -->|Token JWT| UI_A
-    UI_A -->|2. HTTP CRUD + Authorization Bearer JWT| ControllerPedidos
+    UI_Pedidos -->|1. Autenticación OIDC| Auth
+    Auth -->|Token JWT| UI_Pedidos
+    UI_Pedidos -->|2. HTTP CRUD + Authorization Bearer JWT| ControllerPedidos
     ControllerPedidos --> ServicePedidos
     ServicePedidos --> H2DB
     ServicePedidos -->|3. Publica evento pedido.creado| ProducerPedidos
@@ -68,7 +66,7 @@ flowchart TD
     ExchangePedidos -->|routing: notificacion.send| QueueNotif
     QueueNotif -->|4. Consume asíncrono| ConsumerNotif
 
-    UI_B -->|HTTP REST Gestión Topología| ControllerAdmin
+    UI_Admin -->|HTTP REST Gestión Topología| ControllerAdmin
     ControllerAdmin --> ServiceAdmin
     ServiceAdmin -->|RabbitAdmin API| RabbitMQBroker
     ServiceAdmin -->|5. Publica Ticket de Prueba| ExchangeTickets
@@ -80,40 +78,9 @@ flowchart TD
 
 ---
 
-## 2. División de Responsabilidades (Pauta de Trabajo en Pareja)
+## 2. Topología de Mensajería y Políticas DLQ
 
-Para cumplir estrictamente la regla de segregación sin colisiones de código:
-
-### 👤 Persona A: Flujo Principal de Negocio y Seguridad
-- **Backend (pedidos-service - Puerto 8081):**
-  - Modelo de dominio de Pedidos (`Pedido`, `EstadoPedido`, `ItemPedido`).
-  - Capa de persistencia JPA con H2/Cloud DB.
-  - Endpoints protegidos con **Spring Security + OAuth2 Resource Server (JWT IDaaS)**.
-  - Productor de eventos hacia `pedidos.exchange`.
-  - Consumidor de notificaciones en `notificacion.queue`.
-- **Frontend:**
-  - Componente `home` (`/home`): Formulario reactivo de pedidos, tabla en tiempo real.
-  - Integración de login con Azure Entra ID vía `@azure/msal-angular`.
-  - Inyección automática del Token Bearer en llamadas HTTP.
-
-### 👤 Persona B: Infraestructura y Control de Mensajería
-- **Backend (rabbit-admin-service - Puerto 8082):**
-  - Configuración centralizada `RabbitAdminConfig` y bean de infraestructura `RabbitAdmin`.
-  - Capa de servicio dedicada `RabbitAdminService` para manipulación de colas, exchanges y bindings.
-  - Endpoints REST validados con Jakarta Validation y DTOs estrictos (`POST /queues`, `DELETE /queues/{name}`, etc.).
-  - Consumidor de tickets (`ticket.queue`) con manejo de canal AMQP, ACK manual y desvío a DLQ ante fallos.
-  - Consumidor de auditoría para `ticket.dlq`.
-- **Frontend:**
-  - Módulo y vista independiente `/admin-rabbit` (`rabbit-admin.component`).
-  - Tarjetas de monitoreo en tiempo real de colas activas y conteo de mensajes pendientes.
-  - Formulario de provisión dinámica de colas.
-  - Emisor de tickets de prueba con simulador de fallos controlados para evidenciar DLQ.
-
----
-
-## 3. Topología de Mensajería y Políticas DLQ
-
-### 3.1. Arquitectura de Colas y Exchanges
+### 2.1. Arquitectura de Colas y Exchanges
 
 | Componente RabbitMQ | Tipo | Propósito | Argumentos / Enrutamiento |
 |---|---|---|---|
@@ -124,7 +91,7 @@ Para cumplir estrictamente la regla de segregación sin colisiones de código:
 | `ticket.queue` | Classic Durable | Procesamiento transaccional de tickets | `x-dead-letter-exchange: tickets.exchange`<br>`x-dead-letter-routing-key: ticket.dlq.routing` |
 | `ticket.dlq` | Classic Durable | Cola de mensajes muertos para tickets fallidos | Binding: `tickets.exchange` + `ticket.dlq.routing` |
 
-### 3.2. Mecanismo de Confirmación y Tolerancia a Fallos (ACK Manual + DLQ)
+### 2.2. Mecanismo de Confirmación y Tolerancia a Fallos (ACK Manual + DLQ)
 
 En ambos microservicios se eliminó el auto-ack por defecto. Cada consumidor toma el control explícito del canal:
 
@@ -152,9 +119,9 @@ public void procesarTicket(TicketEvent event, Channel channel,
 
 ---
 
-## 4. Catálogo de Endpoints REST
+## 3. Catálogo de Endpoints REST
 
-### 4.1. Microservicio 1: Pedidos (`http://localhost:8081`)
+### 3.1. Microservicio 1: Pedidos (`http://localhost:8081`)
 
 | Verbo | Ruta | Auth Requerida | Descripción | Códigos HTTP |
 |---|---|:---:|---|:---:|
@@ -164,7 +131,7 @@ public void procesarTicket(TicketEvent event, Channel channel,
 | `PUT` | `/api/pedidos/{id}` | Bearer JWT | Actualiza información del pedido | `200 OK`, `404 Not Found` |
 | `DELETE` | `/api/pedidos/{id}` | Bearer JWT | Elimina un pedido | `204 No Content`, `404 Not Found` |
 
-### 4.2. Microservicio 2: Admin RabbitMQ (`http://localhost:8082`)
+### 3.2. Microservicio 2: Admin RabbitMQ (`http://localhost:8082`)
 
 | Verbo | Ruta | Body / Parámetros | Descripción | Códigos HTTP |
 |---|---|---|---|:---:|
@@ -179,9 +146,9 @@ public void procesarTicket(TicketEvent event, Channel channel,
 
 ---
 
-## 5. Validación de Datos y Manejo de Errores
+## 4. Validación de Datos y Manejo de Errores
 
-Para garantizar un 100% de cumplimiento en el indicador de validaciones, los DTOs emplean Jakarta Bean Validation estricto:
+Los DTOs emplean Jakarta Bean Validation estricto para proteger la consistencia de las operaciones:
 
 ```java
 public class QueueRequestDto {
@@ -199,7 +166,7 @@ En caso de datos inválidos (por ejemplo nombre con caracteres prohibidos o vac�
 
 ---
 
-## 6. Cobertura de Pruebas Automatizadas
+## 5. Cobertura de Pruebas Automatizadas
 
 El microservicio `rabbit-admin-service` cuenta con una suite completa de pruebas unitarias y de integración que no dependen de un broker RabbitMQ en vivo (empleando mocks de `ConnectionFactory` y `RabbitAdmin`):
 
@@ -235,23 +202,7 @@ El microservicio `rabbit-admin-service` cuenta con una suite completa de pruebas
 
 ---
 
-## 7. Cumplimiento de la Pauta de Evaluación (Rúbrica DSY1107)
-
-| Criterio de Rúbrica | Ponderación | Nivel Alcanzado | Justificación Técnica |
-|---|:---:|:---:|---|
-| **1. Definición Centralizada de Nombres** | 12% | **100% (Muy Buen Desempeño)** | Nombres definidos en `application.properties` y referenciados con `@Value` en clases `@Configuration`. Cero valores fijos ("magic strings") en código de negocio. |
-| **2. Declaración de Beans Queue/Exchange/Binding** | 13% | **100% (Muy Buen Desempeño)** | Beans declarados para cada caso de uso: `pedidos.exchange`, `pedidos.queue`, `notificacion.queue`, `tickets.exchange`, `ticket.queue` (con argumentos x-dead-letter) y `ticket.dlq`. |
-| **3. Separación Negocio vs Mensajería** | 10% | **100% (Muy Buen Desempeño)** | Capas estrictamente segregadas (`config/`, `service/`, `controller/`, `consumer/`, `dto/`). Servicios de dominio no conocen detalles de bajo nivel del protocolo AMQP. |
-| **4. Consumidores @RabbitListener por Dominio** | 15% | **100% (Muy Buen Desempeño)** | Paquetes dedicados `cl.pedidos360.consumer` y `cl.pedidos360.admin.consumer` separando el dominio comercial del de tickets y auditoría. |
-| **5. Confirmación ACK Explícito + DLQ** | 20% | **100% (Muy Buen Desempeño)** | `AcknowledgeMode.MANUAL` activado. Control con `channel.basicAck()` y `channel.basicNack(tag, false, false)`. Derivación automática hacia DLQ y listener de auditoría. |
-| **6. Endpoints REST del Administrador** | 13% | **100% (Muy Buen Desempeño)** | API RESTful con verbos semánticos (`POST /queues`, `DELETE /queues/{name}`, `GET /queues/{name}`, etc.) respetando estándares de diseño. |
-| **7. Lógica Encapsulada en RabbitAdminService** | 10% | **100% (Muy Buen Desempeño)** | Controladores solo interactúan con `RabbitAdminService`. Toda la interacción con la API `RabbitAdmin` de Spring AMQP está aislada en la capa de servicio. |
-| **8. Validación de Parámetros de Entrada** | 7% | **100% (Muy Buen Desempeño)** | Validación estricta con `@NotBlank`, `@Size`, `@Pattern` en DTOs. Respuestas claras `HTTP 400` ante entradas incorrectas. |
-| **Puntaje Total Proyectado** | **100%** | **Nota Máxima: 7.0 / 100 pts** | Todos los requerimientos funcionales y no funcionales completados. |
-
----
-
-## 8. Guía de Ejecución y Demostración en Vivo
+## 6. Guía de Ejecución y Demostración en Vivo
 
 ### Paso 1: Levantar RabbitMQ
 ```powershell
@@ -277,10 +228,10 @@ cd c:\Users\Home\Documents\Pedidos360\frontend
 npm start
 ```
 
-### Paso 5: Demostración Funcional para el Docente
-1. Acceder a `http://localhost:4200` e iniciar sesión con credenciales IDaaS (Persona A).
+### Paso 5: Demostración Funcional
+1. Acceder a `http://localhost:4200` e iniciar sesión con credenciales IDaaS.
 2. Crear un nuevo pedido en la pestaña **📦 Pedidos**. Observar en la consola del backend cómo se emite `pedido.creado` y se procesa en el consumidor de notificaciones.
-3. Navegar a la pestaña **🐰 Admin RabbitMQ** (`/admin-rabbit` - Persona B):
+3. Navegar a la pestaña **🐰 Admin RabbitMQ** (`/admin-rabbit`):
    - Verificar la lista de colas del sistema y el número de mensajes en tiempo real.
    - Crear una cola personalizada (ej. `cola.auditoria.demo`) y comprobar su creación inmediata en el panel de RabbitMQ.
    - Enviar un ticket de prueba normal con el interruptor *"Simular fallo"* **desactivado**: verificar en el log que se emite `basicAck`.
@@ -289,5 +240,4 @@ npm start
 ---
 
 **Repositorio Oficial:** `https://github.com/Tomasdfp/Pedidos360.git`  
-**Autor:** Tomás + Pareja de Proyecto  
 **Estado:** Listo para entrega y defensa técnica.
